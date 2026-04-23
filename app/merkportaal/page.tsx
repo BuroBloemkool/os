@@ -205,7 +205,7 @@ export default function MerkportaalPage() {
                 <p className="text-sm font-semibold">Patronen pakket</p>
               </button>
             </div>
-          </section>
+         </section>
         </div>
       </div>
     </main>
