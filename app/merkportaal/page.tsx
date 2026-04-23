@@ -8,14 +8,6 @@ const kleuren = [
   { naam: 'Crème', hex: '#FFFAEB', tekst: 'Voor rustige basisvlakken en een warme ondertoon.' },
 ];
 
-const downloads = [
-  'Light logo pakket',
-  'Dark logo pakket',
-  'Socials logo pakket',
-  'Brand guide PDF',
-  'Illustraties pakket',
-  'Patronen pakket',
-];
 export default function MerkportaalPage() {
   return (
     <main className="min-h-screen bg-[#FFFAEB] lg:flex">
@@ -63,7 +55,8 @@ export default function MerkportaalPage() {
                     </div>
                   </div>
                   <p className="mt-3 text-sm leading-5 text-white/80">
-                    Gebruik deze variant op donkere of drukke achtergronden waar extra contrast nodig is.
+                    Gebruik deze variant op donkere of drukke achtergronden waar extra contrast nodig
+                    is.
                   </p>
                 </div>
               </div>
@@ -176,46 +169,43 @@ export default function MerkportaalPage() {
           </section>
 
           <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
-  <h2 className="mb-4 text-2xl font-semibold text-[#0E23CB]">Downloads</h2>
+            <h2 className="mb-4 text-2xl font-semibold text-[#0E23CB]">Downloads</h2>
 
-  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-    
-    <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
-      <p className="text-sm font-semibold">Light logo pakket</p>
-      <p className="mt-1 text-xs opacity-70">
-        Voor websites, documenten en lichte achtergronden
-      </p>
-    </button>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
+                <p className="text-sm font-semibold">Light logo pakket</p>
+                <p className="mt-1 text-xs opacity-70">
+                  Voor websites, documenten en lichte achtergronden
+                </p>
+              </button>
 
-    <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
-      <p className="text-sm font-semibold">Dark logo pakket</p>
-      <p className="mt-1 text-xs opacity-70">
-        Voor donkere visuals en campagnes
-      </p>
-    </button>
+              <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
+                <p className="text-sm font-semibold">Dark logo pakket</p>
+                <p className="mt-1 text-xs opacity-70">
+                  Voor donkere visuals en campagnes
+                </p>
+              </button>
 
-    <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
-      <p className="text-sm font-semibold">Socials logo pakket</p>
-      <p className="mt-1 text-xs opacity-70">
-        Instagram, LinkedIn, profielfoto’s en posts
-      </p>
-    </button>
+              <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
+                <p className="text-sm font-semibold">Socials logo pakket</p>
+                <p className="mt-1 text-xs opacity-70">
+                  Instagram, LinkedIn, profielfoto’s en posts
+                </p>
+              </button>
 
-    <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
-      <p className="text-sm font-semibold">Brand guide PDF</p>
-    </button>
+              <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
+                <p className="text-sm font-semibold">Brand guide PDF</p>
+              </button>
 
-    <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
-      <p className="text-sm font-semibold">Illustraties pakket</p>
-    </button>
+              <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
+                <p className="text-sm font-semibold">Illustraties pakket</p>
+              </button>
 
-    <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
-      <p className="text-sm font-semibold">Patronen pakket</p>
-    </button>
-
-  </div>
-</section>
-              ))}
+              <button className="rounded-[20px] border border-[#0E23CB] p-5 text-left transition hover:bg-[#0E23CB] hover:text-white">
+                <p className="text-sm font-semibold">Patronen pakket</p>
+              </button>
+            </div>
+          </section>
         </div>
       </div>
     </main>
