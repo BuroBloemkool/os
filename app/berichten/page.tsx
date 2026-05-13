@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
@@ -27,7 +28,9 @@ const typeStyle: Record<Thread['type'], string> = {
   Taak: 'bg-rose-100 text-rose-700',
 };
 
-export default function BerichtenPage() {
+// ─── Alles met useSearchParams zit in deze inner component ───────────────────
+
+function BerichtenContent() {
   const searchParams = useSearchParams();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,7 +85,6 @@ export default function BerichtenPage() {
 
   const filteredMentionSuggestions = useMemo(() => {
     const query = mentionQuery.trim().toLowerCase();
-
     return allowedMentions.filter((user) => {
       const notSelected = !selectedMentions.includes(user.id);
       if (!query) return notSelected;
@@ -96,7 +98,6 @@ export default function BerichtenPage() {
 
   function syncMentionsFromText(text: string, internalState: boolean) {
     const availableUsers = getUsersForMentions(internalState ? 'intern' : 'klant');
-
     const foundMentionIds = availableUsers
       .filter((user) => {
         const escaped = user.naam.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -104,23 +105,16 @@ export default function BerichtenPage() {
         return regex.test(text);
       })
       .map((user) => user.id);
-
     setSelectedMentions(foundMentionIds);
   }
 
   function handleMessageChange(value: string) {
     setNewMessage(value);
     syncMentionsFromText(value, isInternal);
-
     setIsTyping(value.trim().length > 0);
 
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-    }, 1200);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 1200);
 
     const textarea = textareaRef.current;
     const cursorPosition = textarea?.selectionStart ?? value.length;
@@ -141,7 +135,6 @@ export default function BerichtenPage() {
   function insertMention(userId: string, userName: string) {
     const textarea = textareaRef.current;
     const cursorPosition = textarea?.selectionStart ?? newMessage.length;
-
     if (mentionStartIndex === null) return;
 
     const before = newMessage.slice(0, mentionStartIndex);
@@ -152,7 +145,6 @@ export default function BerichtenPage() {
     setShowMentionSuggestions(false);
     setMentionQuery('');
     setMentionStartIndex(null);
-
     setSelectedMentions((current) =>
       current.includes(userId) ? current : [...current, userId]
     );
@@ -169,11 +161,7 @@ export default function BerichtenPage() {
     const userName = getUserName(userId);
     const escaped = userName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`(^|\\s)@${escaped}(?=\\s|$)`, 'g');
-    const cleanedText = newMessage
-      .replace(regex, ' ')
-      .replace(/\s{2,}/g, ' ')
-      .trimStart();
-
+    const cleanedText = newMessage.replace(regex, ' ').replace(/\s{2,}/g, ' ').trimStart();
     setNewMessage(cleanedText);
     setSelectedMentions((current) => current.filter((id) => id !== userId));
   }
@@ -185,14 +173,10 @@ export default function BerichtenPage() {
     setMentionQuery('');
     setMentionStartIndex(null);
 
-    const nextAllowedIds = getUsersForMentions(nextInternal ? 'intern' : 'klant').map(
-      (user) => user.id
-    );
-
+    const nextAllowedIds = getUsersForMentions(nextInternal ? 'intern' : 'klant').map((u) => u.id);
     const nextSelectedMentions = selectedMentions.filter((id) => nextAllowedIds.includes(id));
 
     let nextMessage = newMessage;
-
     selectedMentions.forEach((id) => {
       if (!nextAllowedIds.includes(id)) {
         const name = getUserName(id);
@@ -202,15 +186,12 @@ export default function BerichtenPage() {
       }
     });
 
-    nextMessage = nextMessage.replace(/\s{2,}/g, ' ').trimStart();
-
     setSelectedMentions(nextSelectedMentions);
-    setNewMessage(nextMessage);
+    setNewMessage(nextMessage.replace(/\s{2,}/g, ' ').trimStart());
   }
 
   function handleSend() {
     if (!newMessage.trim() || !activeThread) return;
-
     const unreadReceivers = selectedMentions.filter((id) => id !== CURRENT_USER);
 
     const updatedThreads = threads.map((thread) => {
@@ -237,7 +218,6 @@ export default function BerichtenPage() {
     setThreads(updatedThreads);
     saveThreads(updatedThreads);
     emitMessagesUpdated();
-
     setNewMessage('');
     setIsInternal(false);
     setSelectedMentions([]);
@@ -255,7 +235,6 @@ export default function BerichtenPage() {
 
   function handleCreateThread() {
     if (!newThreadTitle.trim()) return;
-
     const newThreadId = Date.now();
 
     const newThread: Thread = {
@@ -267,35 +246,29 @@ export default function BerichtenPage() {
     };
 
     const updatedThreads = [newThread, ...threads];
-
     setThreads(updatedThreads);
     saveThreads(updatedThreads);
     emitMessagesUpdated();
 
     if (newThreadType === 'Aanvraag') {
       const existingRequests = loadRequests();
-
       const newRequest = {
         id: Date.now() + 1,
         titel: newThreadTitle,
         type: mapThreadTypeToRequestType(),
-        omschrijving:
-          newThreadLinkedTo || `Nieuwe aanvraag gestart vanuit berichten: ${newThreadTitle}`,
+        omschrijving: newThreadLinkedTo || `Nieuwe aanvraag gestart vanuit berichten: ${newThreadTitle}`,
         deadline: 'Nog niet bepaald',
         status: 'Ontvangen' as const,
         aangevraagdDoor: clientData.naam,
         gekoppeldBerichtId: newThreadId,
         volgendeStap: 'Aanvraag beoordelen en opvolgen.',
       };
-
-      const updatedRequests = [newRequest, ...existingRequests];
-      saveRequests(updatedRequests);
+      saveRequests([newRequest, ...existingRequests]);
       emitRequestsUpdated();
     }
 
     setActiveThreadId(newThread.id);
     setShowNewThreadModal(false);
-
     setNewThreadTitle('');
     setNewThreadLinkedTo('');
     setNewThreadType('Algemeen');
@@ -317,20 +290,13 @@ export default function BerichtenPage() {
     const updatedThreads = threads.map((thread) => ({
       ...thread,
       messages: thread.messages.map((msg) =>
-        msg.id === editingMessageId
-          ? {
-              ...msg,
-              content: editedMessageText,
-              edited: true,
-            }
-          : msg
+        msg.id === editingMessageId ? { ...msg, content: editedMessageText, edited: true } : msg
       ),
     }));
 
     setThreads(updatedThreads);
     saveThreads(updatedThreads);
     emitMessagesUpdated();
-
     setEditingMessageId(null);
     setEditedMessageText('');
   }
@@ -361,7 +327,6 @@ export default function BerichtenPage() {
       .map((user) => user.id);
 
     if (targetUsers.length === 0) return 'Verstuurd';
-
     const seenByAll = targetUsers.every((id) => !(msg.unreadBy || []).includes(id));
     return seenByAll ? 'Gezien' : 'Verstuurd';
   }
@@ -386,7 +351,6 @@ export default function BerichtenPage() {
                   opleveringen en planning.
                 </p>
               </div>
-
               <button
                 type="button"
                 onClick={() => setShowNewThreadModal(true)}
@@ -401,7 +365,6 @@ export default function BerichtenPage() {
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-[#0E23CB]">Gesprekken</h2>
                 </div>
-
                 <div className="space-y-2">
                   {threads.map((thread) => (
                     <button
@@ -416,25 +379,18 @@ export default function BerichtenPage() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <span className="text-sm font-semibold text-slate-900">{thread.title}</span>
-
                         {getUnreadCount(thread) > 0 && (
                           <span className="rounded-full bg-[#F05532] px-2 py-0.5 text-xs font-medium text-white">
                             {getUnreadCount(thread)}
                           </span>
                         )}
                       </div>
-
                       <div className="mt-2">
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs font-medium ${typeStyle[thread.type]}`}
-                        >
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${typeStyle[thread.type]}`}>
                           {thread.type}
                         </span>
                       </div>
-
-                      <p className="mt-2 text-xs text-slate-500">
-                        Gekoppeld aan: {thread.linkedTo}
-                      </p>
+                      <p className="mt-2 text-xs text-slate-500">Gekoppeld aan: {thread.linkedTo}</p>
                     </button>
                   ))}
                 </div>
@@ -445,57 +401,34 @@ export default function BerichtenPage() {
                   {activeThread ? (
                     <>
                       <div className="mb-4 flex flex-wrap items-center gap-2">
-                        <h2 className="text-xl font-semibold text-slate-900">
-                          {activeThread.title}
-                        </h2>
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs font-medium ${typeStyle[activeThread.type]}`}
-                        >
+                        <h2 className="text-xl font-semibold text-slate-900">{activeThread.title}</h2>
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${typeStyle[activeThread.type]}`}>
                           {activeThread.type}
                         </span>
                       </div>
-
                       <p className="mb-5 text-sm text-slate-500">
                         Gekoppeld aan:{' '}
-                        <span className="font-medium text-slate-700">
-                          {activeThread.linkedTo}
-                        </span>
+                        <span className="font-medium text-slate-700">{activeThread.linkedTo}</span>
                       </p>
-
                       <div className="space-y-3">
                         {activeThread.messages.map((msg) => {
                           const isBloemkool =
                             getUserRole(msg.authorId) === 'admin' ||
                             getUserRole(msg.authorId) === 'team';
-
                           const seenStatus = getSeenStatus(msg);
 
                           return (
-                            <div
-                              key={msg.id}
-                              className={`flex ${isBloemkool ? 'justify-end' : 'justify-start'}`}
-                            >
+                            <div key={msg.id} className={`flex ${isBloemkool ? 'justify-end' : 'justify-start'}`}>
                               <div
                                 className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
-                                  isBloemkool
-                                    ? 'bg-[#0E23CB] text-white'
-                                    : 'bg-slate-100 text-slate-800'
+                                  isBloemkool ? 'bg-[#0E23CB] text-white' : 'bg-slate-100 text-slate-800'
                                 }`}
                               >
                                 <div className="mb-1 flex items-center justify-between gap-3">
-                                  <span
-                                    className={`text-xs font-semibold ${
-                                      isBloemkool ? 'text-white/85' : 'text-slate-500'
-                                    }`}
-                                  >
+                                  <span className={`text-xs font-semibold ${isBloemkool ? 'text-white/85' : 'text-slate-500'}`}>
                                     {getUserName(msg.authorId)}
                                   </span>
-
-                                  <span
-                                    className={`text-[10px] ${
-                                      isBloemkool ? 'text-white/70' : 'text-slate-400'
-                                    }`}
-                                  >
+                                  <span className={`text-[10px] ${isBloemkool ? 'text-white/70' : 'text-slate-400'}`}>
                                     {msg.date}
                                   </span>
                                 </div>
@@ -507,12 +440,8 @@ export default function BerichtenPage() {
                                         key={mentionId}
                                         className={`rounded-full px-2 py-1 text-xs font-medium ${
                                           mentionId === CURRENT_USER
-                                            ? isBloemkool
-                                              ? 'bg-white/20 text-white'
-                                              : 'bg-[#F05532]/10 text-[#F05532]'
-                                            : isBloemkool
-                                            ? 'bg-white/20 text-white'
-                                            : 'bg-[#0E23CB]/10 text-[#0E23CB]'
+                                            ? isBloemkool ? 'bg-white/20 text-white' : 'bg-[#F05532]/10 text-[#F05532]'
+                                            : isBloemkool ? 'bg-white/20 text-white' : 'bg-[#0E23CB]/10 text-[#0E23CB]'
                                         }`}
                                       >
                                         @{getUserName(mentionId)}
@@ -530,18 +459,10 @@ export default function BerichtenPage() {
                                       rows={4}
                                     />
                                     <div className="flex justify-end gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={cancelEditing}
-                                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600"
-                                      >
+                                      <button type="button" onClick={cancelEditing} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600">
                                         Annuleren
                                       </button>
-                                      <button
-                                        type="button"
-                                        onClick={saveEditedMessage}
-                                        className="rounded-xl bg-white px-3 py-2 text-xs font-medium text-[#0E23CB]"
-                                      >
+                                      <button type="button" onClick={saveEditedMessage} className="rounded-xl bg-white px-3 py-2 text-xs font-medium text-[#0E23CB]">
                                         Opslaan
                                       </button>
                                     </div>
@@ -549,51 +470,29 @@ export default function BerichtenPage() {
                                 ) : (
                                   <>
                                     <p className="whitespace-pre-wrap">{msg.content}</p>
-
                                     <div className="mt-3 flex items-center justify-between gap-3">
                                       <div className="flex items-center gap-2">
                                         {msg.internal && (
-                                          <span
-                                            className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${
-                                              isBloemkool
-                                                ? 'bg-white/20 text-white'
-                                                : 'bg-yellow-100 text-yellow-700'
-                                            }`}
-                                          >
+                                          <span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${isBloemkool ? 'bg-white/20 text-white' : 'bg-yellow-100 text-yellow-700'}`}>
                                             Intern
                                           </span>
                                         )}
-
                                         {seenStatus && (
-                                          <span
-                                            className={`text-[11px] ${
-                                              isBloemkool ? 'text-white/75' : 'text-slate-400'
-                                            }`}
-                                          >
+                                          <span className={`text-[11px] ${isBloemkool ? 'text-white/75' : 'text-slate-400'}`}>
                                             {seenStatus}
                                           </span>
                                         )}
-
                                         {msg.edited && (
-                                          <span
-                                            className={`text-[11px] ${
-                                              isBloemkool ? 'text-white/75' : 'text-slate-400'
-                                            }`}
-                                          >
+                                          <span className={`text-[11px] ${isBloemkool ? 'text-white/75' : 'text-slate-400'}`}>
                                             Bewerkt
                                           </span>
                                         )}
                                       </div>
-
                                       {isEditableMessage(msg.authorId) && (
                                         <button
                                           type="button"
                                           onClick={() => startEditing(msg.id, msg.content)}
-                                          className={`text-xs font-medium ${
-                                            isBloemkool
-                                              ? 'text-white/85 hover:text-white'
-                                              : 'text-[#0E23CB] hover:underline'
-                                          }`}
+                                          className={`text-xs font-medium ${isBloemkool ? 'text-white/85 hover:text-white' : 'text-[#0E23CB] hover:underline'}`}
                                         >
                                           Bewerken
                                         </button>
@@ -623,10 +522,7 @@ export default function BerichtenPage() {
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <h3 className="mb-3 text-lg font-semibold text-[#0E23CB]">
-                    Nieuw bericht
-                  </h3>
-
+                  <h3 className="mb-3 text-lg font-semibold text-[#0E23CB]">Nieuw bericht</h3>
                   <textarea
                     ref={textareaRef}
                     value={newMessage}
@@ -653,9 +549,7 @@ export default function BerichtenPage() {
 
                   {showMentionSuggestions && filteredMentionSuggestions.length > 0 && (
                     <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Suggesties
-                      </p>
+                      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Suggesties</p>
                       <div className="flex flex-wrap gap-2">
                         {filteredMentionSuggestions.map((user) => (
                           <button
@@ -673,14 +567,9 @@ export default function BerichtenPage() {
 
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <label className="flex items-center gap-2 text-sm text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={isInternal}
-                        onChange={handleInternalToggle}
-                      />
+                      <input type="checkbox" checked={isInternal} onChange={handleInternalToggle} />
                       Intern bericht
                     </label>
-
                     <button
                       type="button"
                       onClick={handleSend}
@@ -700,7 +589,6 @@ export default function BerichtenPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
             <h3 className="mb-4 text-lg font-semibold">Nieuw gesprek starten</h3>
-
             <div className="space-y-3">
               <input
                 type="text"
@@ -709,7 +597,6 @@ export default function BerichtenPage() {
                 onChange={(e) => setNewThreadTitle(e.target.value)}
                 className="w-full rounded-lg border p-2"
               />
-
               <select
                 value={newThreadType}
                 onChange={(e) => setNewThreadType(e.target.value as Thread['type'])}
@@ -721,7 +608,6 @@ export default function BerichtenPage() {
                 <option>Planning</option>
                 <option>Taak</option>
               </select>
-
               <input
                 type="text"
                 placeholder="Gekoppeld aan"
@@ -730,21 +616,11 @@ export default function BerichtenPage() {
                 className="w-full rounded-lg border p-2"
               />
             </div>
-
             <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowNewThreadModal(false)}
-                className="text-sm text-slate-500"
-              >
+              <button type="button" onClick={() => setShowNewThreadModal(false)} className="text-sm text-slate-500">
                 Annuleren
               </button>
-
-              <button
-                type="button"
-                onClick={handleCreateThread}
-                className="rounded-lg bg-[#0E23CB] px-4 py-2 text-white"
-              >
+              <button type="button" onClick={handleCreateThread} className="rounded-lg bg-[#0E23CB] px-4 py-2 text-white">
                 Aanmaken
               </button>
             </div>
@@ -752,5 +628,15 @@ export default function BerichtenPage() {
         </div>
       )}
     </main>
+  );
+}
+
+// ─── Exporteerde page component met Suspense wrapper ────────────────────────
+
+export default function BerichtenPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#FFFAEB] p-8 text-[#0E23CB]">Berichten laden…</div>}>
+      <BerichtenContent />
+    </Suspense>
   );
 }
